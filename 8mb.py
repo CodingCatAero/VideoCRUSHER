@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+
+# Initializes modules used and starts timer
 import sys
 import subprocess
 import os
@@ -6,24 +8,13 @@ import argparse
 import time
 startTime = time.time()
 
+# Parses args from cli command
 parser = argparse.ArgumentParser()
-parser.add_argument('-f', '--file', help='File to Crush', required=True)
-parser.add_argument('-o', '--output', help='Output File', required=False)
-parser.add_argument("-s", "--size", help="Target Size in MB", type=int, default=8)
-parser.add_argument("-t", "--tolerance", help="Tolerance", type=int,default=10)
+parser.add_argument('-f', '--file', help='File to crush', required=True)
+parser.add_argument("-s", "--size", help="Target Size in MiB (1024 KiB)", type=int, required=True)
+parser.add_argument("-t", "--tolerance", help="Tolerance in % (default: 5)", type=int, required=True)
+parser.add_argument('-o', '--output', help='Name for output filename (default: <file>.crushed.<file type>)', required=False)
 args = parser.parse_args()
-
-def get_duration(fileInput):
-
-    return float(
-        subprocess.check_output([
-            "ffprobe",
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            fileInput
-        ])[:-1]
-    )
 
 def transcode(fileInput, fileOutput, bitrate):
     command = [
@@ -38,48 +29,80 @@ def transcode(fileInput, fileOutput, bitrate):
             'copy',
             fileOutput
       ]
-    #print(command)
+
     proc = subprocess.run(
                 command,
                 capture_output=True,
                 # avoid having to explicitly encode
                 text=True
     )
-    #print(proc.stdout)
 
-# Tolerance below 8mb
+# Returns a string which contains the correct size factor for the amount of bytes thrown in
+def determineByteSize(bytes, perSecond=0):
+    if perSecond == 1:
+        byteSize = ["Bit/s", "Kbit/s", "Mbit/s", "Gbit/s", "Tbit/s", "Pbit/s", "Ebit/s", "Zbit/s"]
+        numerator = 1000
+    else:
+        byteSize = ["Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
+        numerator = 1024
+
+    sizeIndex = 0
+
+    while (bytes > numerator):
+        sizeIndex += 1
+        bytes /= numerator
+
+    return f"{round(bytes, 2)} {byteSize[sizeIndex]}"
+
+# Assigns args to variables
 tolerance = args.tolerance
 fileInput = args.file
+
 if args.output:
     fileOutput = args.output
 else:
     fileOutput = fileInput[:fileInput.rindex('.')] + '.crushed' + fileInput[fileInput.rindex('.'):]
-targetSizeKilobytes = args.size * 1024
-targetSizeBytes = targetSizeKilobytes * 1024
-durationSeconds = get_duration(fileInput)
-bitrate = round( targetSizeBytes / durationSeconds)
-beforeSizeBytes = os.stat(fileInput).st_size
 
-print("Crushing", fileInput, "to", targetSizeKilobytes, "KB with tolerance", tolerance, "%")
+targetSizeBytes = (args.size * 1024) * 1024
+
+# Should get the duration of the video as a float by running a subprocess, reading the stdout, and turning it into a float
+durationSeconds = float((
+    subprocess.run(f"ffprobe -i {fileInput} -show_entries format=duration -v quiet -of csv=\"p=0\"", shell=True, text=True, capture_output=True)
+    ).stdout)
+
+# Rough calculation of bitrate by dividing target bytes by duration of video
+bitrate = targetSizeBytes / durationSeconds
+
+print(f"Crushing {fileInput} to {determineByteSize(targetSizeBytes)} with {tolerance}% tolerance.", end="\n\n")
 
 factor = 0
 attempt = 0
-while (factor > 1.0 + (tolerance/100)) or (factor < 1):
-    attempt = attempt + 1
-    bitrate = round(bitrate * (factor or 1))
-    print("Attempt", attempt, ": Transcoding", fileInput, "at bitrate", bitrate)
 
-    transcode(fileInput, fileOutput, bitrate)
+# Should loop while the video is larger or smaller than the target size +/- the tolerance %
+while (factor > 1.0 + (tolerance/100.0)) or (factor < 1.0 - (tolerance/100.0)):
+    attempt += 1
+
+    # Sets the target bitrate by taking the existing bitrate and multiplying it by 1 (On initial loop), or by the factor of size which the video is larger
+    bitrate = bitrate * (factor or 1)
+
+    print(f"Attempt {attempt}: Transcoding {fileInput} at {determineByteSize(bitrate, perSecond=1)}")
+
+    # Transcodes using the above function
+    transcode(fileInput, fileOutput, round(bitrate))
+
+    # Gets before and after sizes
+    beforeSizeBytes = os.stat(fileInput).st_size
     afterSizeBytes = os.stat(fileOutput).st_size
-    percentOfTarget = (100/targetSizeBytes)*afterSizeBytes
-    factor = 100/percentOfTarget
-    print(
-        "Attempt",attempt,
-        ": Original size:", '{:.2f}'.format(beforeSizeBytes/1024/1024), "MB",
-        "New size:", '{:.2f}'.format(afterSizeBytes/1024/1024), "MB",
-        "Percentage of target:", '{:.0f}'.format(percentOfTarget),
-        "and bitrate", bitrate
-    )
 
-print("Completed in", attempt, "attempts over", round(time.time() - startTime, 2), "seconds")
-print(" > Exported as", fileOutput)
+    # Determines the percentage that the transcoded filesize is in reference to the target size 
+    # (e.g. 50% means the transcoded file size is half of the target)
+
+    # The factor is how much to multiply or devide the bitrate by to get closer to the targer 
+    # (e.g. If the transcoded file is 150% of the target, the factor is 100/150 = 0.75)
+    percentOfTarget = (afterSizeBytes/targetSizeBytes) * 100.0
+    factor = 100.0/percentOfTarget
+
+    print(f"Result: Original size: {determineByteSize(beforeSizeBytes)}. New size: {determineByteSize(afterSizeBytes)}. Percentage of target: {round(percentOfTarget)}%. Bitrate: {determineByteSize(bitrate, perSecond=1)}", end="\n\n")
+
+print(f"Completed in {attempt} attempts over {round(time.time() - startTime, 2)} seconds")
+print(f"Crushed and exported as {fileOutput}")

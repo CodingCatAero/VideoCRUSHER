@@ -43,7 +43,3 @@ Attempt 4 : Transcoding /home/geusebio/Downloads/chooch.mp4 at bitrate 249600
 Attempt 4 : Original size: 48.30 MB New size: 7.30 MB Percentage of target: 91 and bitrate 249600
 Completed in 4 attempts.
 ```
-Attempt 4 : Transcoding /home/geusebio/Downloads/chooch.mp4 at bitrate 249600
-Attempt 4 : Original size: 48.30 MB New size: 7.30 MB Percentage of target: 91 and bitrate 249600
-Completed in 4 attempts.
-```
