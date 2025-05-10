@@ -38,9 +38,9 @@ if ! $packageSearch ffmpeg; then
 fi
 
 # Adds or replaces the bash and python scripts for the user
-sudo curl https://raw.githubusercontent.com/CodingCatAero/8mbDockerless/27c551c43d6b119853cb03f3a7cea3ec41751e32/8mb -o /usr/local/bin/8mb
+curl https://raw.githubusercontent.com/CodingCatAero/8mbDockerless/refs/heads/main/8mb | sudo tee /usr/local/bin/8mb > /dev/null
 
-sudo curl https://raw.githubusercontent.com/CodingCatAero/8mbDockerless/27c551c43d6b119853cb03f3a7cea3ec41751e32/8mb.py -o /usr/bin/8mb.py
+curl https://raw.githubusercontent.com/CodingCatAero/8mbDockerless/refs/heads/main/8mb.py | sudo tee /usr/bin/8mb.py > /dev/null
 
 sudo chmod +x /usr/local/bin/8mb
 

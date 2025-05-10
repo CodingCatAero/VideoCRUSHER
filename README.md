@@ -1,18 +1,32 @@
 # 8mb
 8MB video compression bash script for ffmpeg. 
 
-I refuse to pay for Discord Nitro. Stop giving them money. They've raised [$0.9945 Bn of Venture Capital](https://www.crunchbase.com/organization/discord/company_financials). They don't need your money.
+I also refuse to pay for Discord Nitro. Stop giving them money. They've raised [$0.9945 Bn of Venture Capital](https://www.crunchbase.com/organization/discord/company_financials). They don't need your money.
 
 ## Installation
+Just download ``install.sh``.
+
+Then cd into the directory it's in and type:
 ```bash
-curl -s https://raw.githubusercontent.com/matthewbaggett/8mb/main/8mb | sudo tee /usr/local/bin/8mb >/dev/null; sudo chmod +x /usr/local/bin/8mb
+bash ./install.sh
 ```
 and now 8mb should be in your PATH:
 ```bash
 8mb -h
 ```
 
+## Updating
+Just run ``install.sh`` again.
+
 ## What's New
+* Added seperate install script
+* Added accurate percentage calculation
+* Bitrate and size now show proper factors
+* Added comments for everything now
+* re-implimented abandoned output flag
+* Updated MB/KB to Mib/Kib becuase that's the math being used
+* Cleaned up output
+
 * Removed Docker integration
 * Added dependency checks, helping user to install them if not found
 * Added comments to install bash script
@@ -26,20 +40,24 @@ Currently, Arch based, Debian based, and Red Hat based linux distros are support
 ## Usage
 It supports the following flags:
  * --file/-f: The file to compress
- * --size/-s: The target size in MB (so you can stop forking this repo just to change the size...)
+ * --size/-s: The target size in MiB
  * --tolerance/-t: The tolerance in percentage points
+ * --output/ -o: The name of the output file
 
 ## Example
-New, iterative process usage:
+New, cleaned up output:
 ```
-matthewbaggett@exploding-bolts:~$ 8mb.py -f ~/Downloads/chooch.mp4
-Attempt 1 : Transcoding /home/geusebio/Downloads/chooch.mp4 at bitrate 52667
-Attempt 1 : Original size: 48.30 MB New size: 3.59 MB Percentage of target: 45 and bitrate 52667
-Attempt 2 : Transcoding /home/geusebio/Downloads/chooch.mp4 at bitrate 117441
-Attempt 2 : Original size: 48.30 MB New size: 4.80 MB Percentage of target: 60 and bitrate 117441
-Attempt 3 : Transcoding /home/geusebio/Downloads/chooch.mp4 at bitrate 195825
-Attempt 3 : Original size: 48.30 MB New size: 6.28 MB Percentage of target: 78 and bitrate 195825
-Attempt 4 : Transcoding /home/geusebio/Downloads/chooch.mp4 at bitrate 249600
-Attempt 4 : Original size: 48.30 MB New size: 7.30 MB Percentage of target: 91 and bitrate 249600
-Completed in 4 attempts.
+Crushing /home/PapercrownKitty/Downloads/test.mp4 to 10.0 MiB with 5% tolerance.
+
+Attempt 1: Transcoding /home/PapercrownKitty/Downloads/test.mp4 at 321.47 Kbit/s
+Result: Original size: 11.36 MiB. New size: 1.64 MiB. Percentage of target: 16%. Bitrate: 321.47 Kbit/s
+
+Attempt 2: Transcoding /home/PapercrownKitty/Downloads/test.mp4 at 1.96 Mbit/s
+Result: Original size: 11.36 MiB. New size: 7.87 MiB. Percentage of target: 79%. Bitrate: 1.96 Mbit/s
+
+Attempt 3: Transcoding /home/PapercrownKitty/Downloads/test.mp4 at 2.49 Mbit/s
+Result: Original size: 11.36 MiB. New size: 9.87 MiB. Percentage of target: 99%. Bitrate: 2.49 Mbit/s
+
+Completed in 3 attempts over 14.11 seconds
+Crushed and exported as /home/PapercrownKitty/Downloads/test.crushed.mp4
 ```
