@@ -34,5 +34,4 @@ if [ -z "${file[1]}" ]; then
 fi
 
 # File, size, and tolerance are all passed from the command as args
-#python /usr/bin/8mb.py --file "$file" --size "${size:""}" --tolerance "${tolerance:""}" --output "${output:""}"
-python ./8mb.py "${file[@]}" "${size[@]}" "${tolerance[@]}" "${output[@]}"
+python /usr/bin/8mb.py "${file[@]}" "${size[@]}" "${tolerance[@]}" "${output[@]}"
