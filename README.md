@@ -4,11 +4,11 @@
 I also refuse to pay for Discord Nitro. Stop giving them money. They've raised [$0.9945 Bn of Venture Capital](https://www.crunchbase.com/organization/discord/company_financials). They don't need your money.
 
 ## Installation
-Just download ``install.sh``.
+Just download ``install``.
 
 Then cd into the directory it's in and type:
 ```bash
-bash ./install.sh
+bash install
 ```
 and now 8mb should be in your PATH:
 ```bash
@@ -16,9 +16,10 @@ and now 8mb should be in your PATH:
 ```
 
 ## Updating
-Just run ``install.sh`` again.
+Just run ``bash install`` again.
 
 ## What's New
+* Added lower bound for bitrate to stop crashing
 * Added seperate install script
 * Added accurate percentage calculation
 * Bitrate and size now show proper factors
