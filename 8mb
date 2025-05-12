@@ -15,10 +15,10 @@ usage() {
 while getopts f:s:t:o:h flag
 do
     case "${flag}" in
-        f) file=${OPTARG};;
-        s) size=${OPTARG};;
-        t) tolerance=${OPTARG};;
-        o) output=${OPTARG};; 
+        f) file=("-f" "${OPTARG}");;
+        s) size=("-s" "${OPTARG}");;
+        t) tolerance=("-t" "${OPTARG}");;
+        o) output=("-o" "${OPTARG}");; 
         h) usage 
            exit 0;;
         *) echo ""
@@ -28,10 +28,11 @@ do
 done
 
 # Should exit unsuccessfully if no file has been provided, and program hasn't already exited
-if [ -z "$file" ]; then
+if [ -z "${file[1]}" ]; then
     usage
     exit 1
 fi
 
 # File, size, and tolerance are all passed from the command as args
-python /usr/bin/8mb.py --file "$file" --size "${size:-10}" --tolerance "${tolerance:-5}" --output "${output:""}"
+#python /usr/bin/8mb.py --file "$file" --size "${size:""}" --tolerance "${tolerance:""}" --output "${output:""}"
+python ./8mb.py "${file[@]}" "${size[@]}" "${tolerance[@]}" "${output[@]}"
