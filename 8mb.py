@@ -67,7 +67,7 @@ targetSizeBytes = (args.size * 1024) * 1024
 
 # Should get the duration of the video as a float by running a subprocess, reading the stdout, and turning it into a float
 durationSeconds = float((
-    subprocess.run(f"ffprobe -i {fileInput} -show_entries format=duration -v quiet -of csv=\"p=0\"", shell=True, text=True, capture_output=True)
+    subprocess.run(f"ffprobe -i \"{fileInput}\" -show_entries format=duration -v quiet -of csv=\"p=0\"", shell=True, text=True, capture_output=True)
     ).stdout)
 
 # Rough calculation of bitrate by dividing target bytes by duration of video
