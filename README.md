@@ -1,22 +1,26 @@
-# 8mb
-8MB video compression bash script for ffmpeg. 
+# VideoCRUSHER
+Video CRUSHING python script (with BASH integration) for ffmpeg. 
 
 I also refuse to pay for Discord Nitro. Stop giving them money. They've raised [$0.9945 Bn of Venture Capital](https://www.crunchbase.com/organization/discord/company_financials). They don't need your money.
 
 ## Installation
-Just download ``install``.
-
-Then cd into the directory it's in and type:
+Download ``installVideoCRUSHER`` and in it's directory run:
 ```bash
-bash install
-```
-and now 8mb should be in your PATH:
-```bash
-8mb -h
+bash installVideoCRUSHER
 ```
 
 ## Updating
-Just run ``bash install`` again.
+Just run 
+```bash
+bash installVideoCRUSHER
+``` 
+again.
+
+## Uninstallation
+Download ``uninstallVideoCRUSHER`` and in it's directory run:
+```bash
+bash uninstallVideoCRUSHER
+```
 
 ## What's New
 * Added lower bound for bitrate to stop crashing
