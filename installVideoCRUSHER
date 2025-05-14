@@ -43,9 +43,9 @@ then
     fi
 
     # Adds or replaces the bash and python scripts for the user
-    curl https://raw.githubusercontent.com/CodingCatAero/8mbDockerless/refs/heads/main/videoCRUSHER | sudo tee /usr/local/bin/videoCRUSHER &> /dev/null
+    curl https://raw.githubusercontent.com/CodingCatAero/VideoCRUSHER/refs/heads/main/videoCRUSHER | sudo tee /usr/local/bin/videoCRUSHER &> /dev/null
 
-    curl https://raw.githubusercontent.com/CodingCatAero/8mbDockerless/refs/heads/main/videoCRUSHER.py | sudo tee /usr/bin/videoCRUSHER.py &> /dev/null
+    curl https://raw.githubusercontent.com/CodingCatAero/VideoCRUSHER/refs/heads/main/videoCRUSHER.py | sudo tee /usr/bin/videoCRUSHER.py &> /dev/null
 
     sudo chmod 555 /usr/local/bin/videoCRUSHER
 
