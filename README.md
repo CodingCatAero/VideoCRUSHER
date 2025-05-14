@@ -3,18 +3,21 @@ Video CRUSHING python script (with BASH integration) for ffmpeg.
 
 I also refuse to pay for Discord Nitro. Stop giving them money. They've raised [$0.9945 Bn of Venture Capital](https://www.crunchbase.com/organization/discord/company_financials). They don't need your money.
 
-## Installation
+## Installation on GNU/Linux based OSes
 Download ``installVideoCRUSHER`` and in it's directory run:
 ```bash
 bash installVideoCRUSHER
 ```
 
+## Installation on other OSes
+I don't have a windows PC or Mac, so unfortunatelly I'm unfamiliar with how to set up powershell/terminal integration on those machines.
+
+You're more than free to form this project and give it a shot yourself! I highly recommend doing that with a simple project like this to help learn git.
+
+In the meantime, you can just download `` videoCRUSHER.py `` and run it through CLI using `` python ``.
+
 ## Updating
-Just run 
-```bash
-bash installVideoCRUSHER
-``` 
-again.
+Just run `` bash installVideoCRUSHER `` again.
 
 ## Uninstallation
 Download ``uninstallVideoCRUSHER`` and in it's directory run:
