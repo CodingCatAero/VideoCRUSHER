@@ -34,4 +34,4 @@ if [ -z "${file[1]}" ]; then
 fi
 
 # File, size, and tolerance are all passed from the command as args
-python "$HOME/.local/8mb.py" "${file[@]}" "${size[@]}" "${tolerance[@]}" "${output[@]}"
+python "$HOME/.local/videoCRUSHER.py" "${file[@]}" "${size[@]}" "${tolerance[@]}" "${output[@]}"
