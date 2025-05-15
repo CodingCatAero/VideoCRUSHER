@@ -11,12 +11,12 @@ then
     do
         if [[ $option == "$choice" ]] ;
         then            
-            printf "\n\nRemoving videoCRUSHER script from /usr/local/bin/videoCRUSHER"
-            sudo rm /usr/local/bin/videoCRUSHER &> /dev/null
+            printf "\n\nRemoving videoCRUSHER script from from %s/.local/bin/" "$HOME"
+            sudo rm "$HOME/.local/bin/videoCRUSHER" &> /dev/null
             printf "\nDone!"
 
-            printf "\n\nRemoving videoCRUSHER script from /usr/bin/videoCRUSHER.py"
-            sudo rm /usr/local/bin/videoCRUSHER &> /dev/null
+            printf "\n\nRemoving videoCRUSHER.py program from %s/.local/" "$HOME"
+            sudo rm "$HOME/.local/videoCRUSHER.py" &> /dev/null
             printf "\nDone!"
 
             printf "\n\nUninstalled!"
