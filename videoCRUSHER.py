@@ -8,6 +8,8 @@ import argparse
 import time
 startTime = time.time()
 
+BYTE_SIZES = ["MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
+TIME_CATEGORIES = ["seconds", "minutes", "hours"]
 
 # Define functions for later use
 # Should run an encode with optional video filters
@@ -33,23 +35,20 @@ def printAttemptInfo():
     print(f"\nAttempt {attempt}: {width}x{height} @ {framerate}fps")
 
 # Returns a string which contains the correct size factor for the amount of bytes thrown in
-def determineMiBSize(inputMiB):
-    byteSize = ["MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
-    numerator = 1024     
+def determineCategory(inputValue, categories, numerator):   
+    categoryIndex = 0
 
-    sizeIndex = 0
+    while (inputValue > numerator):
+        categoryIndex += 1
+        inputValue /= numerator
 
-    while (inputMiB > numerator):
-        sizeIndex += 1
-        inputMiB /= numerator
-
-    return f"{round(inputMiB, 2)} {byteSize[sizeIndex]}"
+    return f"{round(inputValue, 2)} {categories[categoryIndex]}"
 
 
 # Parses args from cli command
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--file', help='File to crush', required=True)
-parser.add_argument("-s", "--size", help="Target Size in MB (1000 KB)", type=int, default=8, required=False)
+parser.add_argument("-s", "--size", help="Target Size in MiB (1024 KiB)", type=int, default=8, required=False)
 parser.add_argument("-t", "--tolerance", help="Tolerance in % (default: 5)", type=int, default=5, required=False)
 parser.add_argument('-o', '--output', help='Name for output filename (default: <file>.crushed.<file type>)', required=False)
 args = parser.parse_args()
@@ -83,9 +82,10 @@ fileInput = tempFileInput
 # Should get the size, duration and resolution of the new baseline
 videoSize = getVideoSizeMiB(fileInput)
 
-print(f"\nCrushing {fileName} to {determineMiBSize(targetSizeMiB)}")
+print(f"\nCrushing {fileName} to {determineCategory(targetSizeMiB, BYTE_SIZES, 1024)}")
 
 attempt = 0
+result = 0
 
 while attempt < 6:
     attempt+=1
@@ -115,7 +115,6 @@ if result == 0:
         result = 1
 
     elif answer == "o" or answer == "O":
-        result = 0
         answer = input("\nAre you sure you want to OBLITERATE it? THIS MAY MAKE IT UNWATCHABLE. Continue? [y/N]: ")
 
         if answer == "y" or answer == "Y":
@@ -143,7 +142,7 @@ if result == 0:
 if result == 0:
     print("\nThe video was too strong.. It couldn't be crushed")
 else:
-    print(f"\nCompleted in {attempt} attempts over {round(time.time() - startTime)} seconds")
+    print(f"\nCompleted in {attempt} attempts over {determineCategory(round(time.time() - startTime), TIME_CATEGORIES, 60)}")
     print(f"Exported as {fileOutput}")
 
 subprocess.run(f"rm -f {fileInput}", shell=True, text=True)
