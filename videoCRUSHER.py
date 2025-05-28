@@ -8,6 +8,44 @@ import argparse
 import time
 startTime = time.time()
 
+
+# Define functions for later use
+# Should run an encode with optional video filters
+def runEncode(videoInput, videoOutput, extraFilters="", overwrite=0):
+    if extraFilters:
+        extraFilters = "," + extraFilters
+
+    subprocess.run(f"ffmpeg -y -i \"{videoInput}\" -hide_banner -loglevel error -c:a libmp3lame -q 30 -compression_level 9 -c:v libx264 -preset ultrafast -crf 30 -vf scale={width}:{height}{extraFilters} \"{videoOutput}\"",
+            shell=True, text=True)
+
+    if overwrite == 1:
+        subprocess.run(f"cp -f {fileOutput} {fileInput}",shell=True, text=True)
+
+def runProbe(videoInput, stream):
+    return subprocess.run(f"ffprobe -i \"{fileInput}\" -v quiet -select_streams v -of default=noprint_wrappers=1:nokey=1 -show_entries stream={stream}", 
+        shell=True, text=True, capture_output=True).stdout
+
+# Should return the size of the file in the provided path in MiB
+def getVideoSizeMiB(path):
+    return os.path.getsize(path)/1024/1024
+
+def printAttemptInfo():
+    print(f"\nAttempt {attempt}: {width}x{height} @ {framerate}fps")
+
+# Returns a string which contains the correct size factor for the amount of bytes thrown in
+def determineMiBSize(inputMiB):
+    byteSize = ["MiB", "GiB", "TiB", "PiB", "EiB", "ZiB"]
+    numerator = 1024     
+
+    sizeIndex = 0
+
+    while (inputMiB > numerator):
+        sizeIndex += 1
+        inputMiB /= numerator
+
+    return f"{round(inputMiB, 2)} {byteSize[sizeIndex]}"
+
+
 # Parses args from cli command
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--file', help='File to crush', required=True)
@@ -16,149 +54,97 @@ parser.add_argument("-t", "--tolerance", help="Tolerance in % (default: 5)", typ
 parser.add_argument('-o', '--output', help='Name for output filename (default: <file>.crushed.<file type>)', required=False)
 args = parser.parse_args()
 
-RESOLUTIONCRUSH={0.35, 0.55, 0.67, 0.74, 0.78}
-
 # Assigns args to variables
-tolerance = args.tolerance
 fileInput = args.file
+targetSizeMiB = args.size
+tolerancePercentage = args.tolerance/100
 
 if args.output:
     fileOutput = args.output
 else:
-    fileOutput = f"{fileInput[:fileInput.rindex('.')]}_CRUSHED{fileInput[fileInput.rindex('.'):]}"
+    fileOutput = f"{fileInput[:fileInput.rindex('.')]}_CRUSHED.mp4"
 
-fileOutputName = f"{fileOutput[fileInput.rindex('/') + 1:]}"
+duration = float(runProbe(fileInput, "duration"))
 
-newFileInput = os.path.expanduser('~') + f"/temp{fileOutputName}"
+framerate = round(int(runProbe(fileInput, "r_frame_rate")[:-3]))
 
-targetSizeBytes = args.size * 1000 * 1000
+resolution = runProbe(fileInput, "width,height").split()
+width = int(resolution[0])
+height = int(resolution[1])
 
+fileName = fileInput[fileInput.rindex('/') + 1:]
 
-# Initial encode to set baseline
-subprocess.run(f"ffmpeg -y -i \"{fileInput}\" -hide_banner -loglevel error -c:v libx264 -preset slow -crf 30 -c:a copy \"{newFileInput}\"",
-            shell=True, text=True)
+tempFileInput = os.path.expanduser('~') + f"/temp{fileInput[fileInput.rindex('/') + 1:]}"
 
-# Should get the duration of the new baseline by running a subprocess, reading the stdout, and turning it into a float
-videoSize = int(subprocess.run(f"ffprobe -v error -select_streams v -show_entries packet=size -of default=nokey=1:noprint_wrappers=1 \"{newFileInput}\" | awk \'{{totalSize+=$1}} END {{print totalSize}}\'", 
-    shell=True, text=True, capture_output=True).stdout)
+# Initial encode to set baseline and set input to new baseline
+runEncode(fileInput, tempFileInput)
+fileInput = tempFileInput
 
-durationSeconds = float(subprocess.run(f"ffprobe -i \"{newFileInput}\" -show_entries format=duration -v quiet -of csv=\"p=0\"", 
-    shell=True, text=True, capture_output=True).stdout)
+# Should get the size, duration and resolution of the new baseline
+videoSize = getVideoSizeMiB(fileInput)
 
-resolution = subprocess.run(f"ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of default=nokey=1:noprint_wrappers=1 \"{newFileInput}\"", 
-    shell=True, text=True, capture_output=True).stdout.split()
+print(f"\nCrushing {fileName} to {determineMiBSize(targetSizeMiB)}")
 
-def crushByBitrate(tolerance, bitrate, targetSizeBytes, fileInput, fileOutput):
-    factor = None
-
-    while (factor == None or (factor > 1.0 + (tolerance/100.0) or factor < 1.0 - (tolerance/100.0)) and bitrate > 1000):
-        attempt+=1
-
-        # Sets the target bitrate by taking the existing bitrate and multiplying it by 1 (On initial loop), or by the factor of size which the video is larger
-        bitrate = round(bitrate * (factor or 1))
-
-        if bitrate < 1000:
-            print("Bitrate reached lower bound. Terminating..", end="\n\n")
-            bitrate = 1000
-
-        else:
-            print(f"Transcoding {fileInput} at {determineByteSize(bitrate, perSecond=1)}")
-
-            # Transcodes using the above function   
-            subprocess.run(f"ffmpeg -y -hide_banner -loglevel error -i \"{fileInput}\" -b:v {str(bitrate)} -cpu-used {str(os.cpu_count())} -c:a copy \"{fileOutput}\"",
-            shell=True, text=True)
-
-            # Gets before and after sizes
-            beforeSizeBytes = os.stat(fileInput).st_size
-            afterSizeBytes = os.stat(fileOutput).st_size
-
-            # Determines the percentage that the transcoded filesize is in reference to the target size 
-            # (e.g. 50% means the transcoded file size is half of the target)
-
-            # The factor is how much to multiply or devide the bitrate by to get closer to the targer 
-            # (e.g. If the transcoded file is 150% of the target, the factor is 100/150 = 0.75)
-            percentOfTarget = (afterSizeBytes/targetSizeBytes) * 100.0
-            factor = 100.0/percentOfTarget
-
-            print(f"Result: Original size: {determineByteSize(beforeSizeBytes)}. New size: {determineByteSize(afterSizeBytes)}. Percentage of target: {round(percentOfTarget)}%. Bitrate: {determineByteSize(bitrate, perSecond=1)}", end="\n\n")
-
-# Returns a string which contains the correct size factor for the amount of bytes thrown in
-def determineByteSize(bytes, perSecond=0):
-    if perSecond == 1:
-        byteSize = ["Bit/s", "Kbit/s", "Mbit/s", "Gbit/s", "Tbit/s", "Pbit/s", "Ebit/s", "Zbit/s"]
-
-    else:
-        byteSize = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]
-
-    sizeIndex = 0
-
-    while (bytes > 1000):
-        sizeIndex += 1
-        bytes /= 1000
-
-    return f"{round(bytes, 2)} {byteSize[sizeIndex]}"
-
-
-
-print(f"Crushing {fileInput} to {determineByteSize(targetSizeBytes)} with {tolerance}% tolerance.", end="\n\n")
-
-# # Should loop while the video is larger or smaller than the target size +/- the tolerance %
 attempt = 0
 
-widthResolution = int(resolution[0])
-heightResolution = int(resolution[1])
-
-for percentageDecrease in RESOLUTIONCRUSH:
+while attempt < 6:
     attempt+=1
-    print(f"\nAttempt {attempt}. Resolution: {widthResolution}x{heightResolution}")
 
-    widthResolution *= 0.75
-    heightResolution *= 0.75
+    width = round(width * 0.75)
+    height = round(height * 0.75)
 
-    widthResolution = round(widthResolution)
-    heightResolution = round(heightResolution)
+    if width % 2 == 1:
+        width += 1
 
-    if widthResolution % 2 == 1:
-        widthResolution += 1
+    if height % 2 == 1:
+        height += 1
 
-    if heightResolution % 2 == 1:
-        heightResolution += 1
+    printAttemptInfo()
 
-    if (videoSize)*(1-percentageDecrease) < targetSizeBytes:
+    runEncode(fileInput, fileOutput, overwrite=1)
 
-        print("Resolution to crush to found. Crushing now..")
-        subprocess.run(f"ffmpeg -y -i \"{fileInput}\" -hide_banner -loglevel error -c:v libx264 -preset slow -crf 30 -vf scale={widthResolution}:{heightResolution} -c:a copy \"{fileOutput}\"",
-            shell=True, text=True)
+    if  getVideoSizeMiB(fileOutput) < targetSizeMiB * (1 + tolerancePercentage):
+        result = 1
 
-answer = input("\nWould you like to crush to the (l)owest resolution, or try (o)bliteration? [l/o/EXIT]: ")
+if result == 0:
+    answer = input("\nResolution unable to be found. Would you like to crush to the (l)owest safe resolution, or try (o)bliteration? [l/o/EXIT]: ")
 
-if answer == "l" or answer == "L":
-    print("\nCrushing now..")
-    subprocess.run(f"ffmpeg -y -i \"{fileInput}\" -hide_banner -loglevel error -c:v libx264 -preset slow -crf 30 -vf scale={widthResolution}:{heightResolution} -c:a copy \"{newFileInput}\"",
-    shell=True, text=True)
+    if answer == "l" or answer == "L":
+        print("\nCrushing now..")
+        runEncode(fileInput, fileOutput, overwrite=1)
+        result = 1
 
-    result = 1
+    elif answer == "o" or answer == "O":
+        result = 0
+        answer = input("\nAre you sure you want to OBLITERATE it? THIS MAY MAKE IT UNWATCHABLE. Continue? [y/N]: ")
 
-elif answer == "o" or answer == "O":
+        if answer == "y" or answer == "Y":
+            while result == 0 and attempt < 10:
+                attempt += 1
 
-    answer = input("\nAre you sure you want to OBLITERATE it? THIS WILL MAKE IT UNWATCHABLE. Continue? [y/N]: ")
+                framerate = round(framerate*0.80)
 
-    if answer == "y" or answer == "Y":
-        subprocess.run(f"ffmpeg -y -i \"{fileInput}\" -hide_banner -loglevel error -c:v libx264 -preset slow -crf 30 -vf scale={widthResolution}:{heightResolution} -c:a copy \"{newFileInput}\"",
-            shell=True, text=True)
+                width = round(width*0.80)
+                height = round(height*0.80)
 
-        # Get the crushed video's size
-        videoSize = int(subprocess.run(f"ffprobe -v error -select_streams v -show_entries packet=size -of default=nokey=1:noprint_wrappers=1 \"{newFileInput}\" | awk \'{{totalSize+=$1}} END {{print totalSize}}\'", 
-            shell=True, text=True, capture_output=True).stdout)
+                if width % 2 == 1:
+                    width += 1
 
-        # Rough calculation of bitrate by dividing target bytes by duration of video
-        bitrate = round(videoSize / durationSeconds)
-        targetBitrate = round(targetSizeBytes / durationSeconds)
+                if height % 2 == 1:
+                    height += 1
 
-        crushByBitrate(tolerance, bitrate, targetSizeBytes, newFileInput, fileOutput)
+                printAttemptInfo()
 
-        print(f"\nCompleted in {attempt} attempts over {round(time.time() - startTime, 2)} seconds")
-        print(f"Crushed and exported as {fileOutput}")
+                runEncode(fileInput, fileOutput, f"fps=fps={framerate}", 1)
 
-subprocess.run(f"rm -f {newFileInput}", shell=True, text=True)
+                if getVideoSizeMiB(fileOutput) < targetSizeMiB * (1 + tolerancePercentage):
+                    result = 1
+
+if result == 0:
+    print("\nThe video was too strong.. It couldn't be crushed")
+else:
+    print(f"\nCompleted in {attempt} attempts over {round(time.time() - startTime)} seconds")
+    print(f"Exported as {fileOutput}")
+
+subprocess.run(f"rm -f {fileInput}", shell=True, text=True)
 print("\nExiting")
